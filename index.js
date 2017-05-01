@@ -57,4 +57,4 @@ if(typeof $  === undefined){
 else{
     simpleType = $
 }
-export   let apiCall = simple(simpleType).simpleCall;
+export   let apiCall = new simple(simpleType).simpleCall;
