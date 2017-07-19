@@ -1,60 +1,77 @@
-class simple {
-    constructor(typeCall){
-        this.typeCall = typeCall;
-        if(!this.typeCall){
-            this.call = window.fetch
-        }else{
-            this.call = this.typeCall
-        }
-        this.resConfig ={
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
+/**
+ * Created by Administrator on 2017/6/16.
+ */
+import $ from 'jquery'
+import deepAssign from 'deep-assign'
+
+class call{
+    constructor(){
+        this.config = {
+            method : "post",
+            headers : {
+                "Content-Type" : "application/json",
+                "Accept" : "application/json"
             }
         }
+        this.jQCallApi = this.jQCallApi.bind($)
     }
-    ajaxSetUp(url,opition, successCallback, errorCallback) {
-        $.ajax(url,opition).done(function (data, textStatus, jqXHR) {
-            (successCallback || $.noop)(data);
-        }).fail(function (jqXHR, textStatus, errorThrown) {
-            if (typeof errorCallback == "function") {
-                errorCallback(jqXHR, textStatus, errorThrown);
-            }
+    jQCallApi(url,options){
+        let self = this;
+        return new Promise((resolve,reject) => {
+            self.ajax(url,options).done(function (data, textStatus, jqXHR) {
+                resolve(data)
+            }).fail(function (jqXHR, textStatus, errorThrown) {
+                reject(jqXHR, textStatus, errorThrown);
+            })
+        })
+
+    }
+    fetchCallApi(url,options){
+        return  new Promise((resolve,reject) => {
+            window.fetch(url,options).then(function (response) {
+                console.log(response);
+                if(response.status === 404){
+                    return reject()
+                }
+                if(response.ok === false){
+                    return reject()
+                }
+                return response.json()
+            }).then(function (data) {
+                console.log(data)
+                resolve(data)
+            }).catch((error) =>{
+                console.log(error)
+            })
         })
     }
-    callApi(url,opition) {
-        let deferred = $.Deferred();
-        this.ajaxSetUp(url,opition, function (data) {
-            deferred.resolve(data);
-        }, function (jqXHR, textStatus, errorThrown) {
-            deferred.reject(textStatus);
-        });
-        return deferred.promise();
-    }
-    simpleCall(url,opition){
-        opition = Object.assign(this.resConfig,opition);
-        if(!this.typeCall) {
-            var myPromise = new Promise((resolve, reject) => {
-                this.call(url, this.resConfig).then(() => {
-                    resolve("success")
-                }, () => {
-                    reject("failure")
-                })
-            });
-            return myPromise
+    simpleCall(url,options,type){
+        options =deepAssign({},this.config,options);
+        type = type!==false;
+        if(window.fetch && type){
+            if(options.method === "get"){
+                url = this.packageUrl(url,options);
+                console.log(url);
+            }
+            if(options.data && options.method === "post"){
+                options.body = options.data;
+            }
+            return  this.fetchCallApi(url,options)
         }else{
-            this.callApi(url,this.resConfig)
+            return this.jQCallApi(url,options)
+        }
+    }
+    packageUrl(url,options) {
+        if(options.data){
+            url = url+ "?"
+            for (let a of Object.keys(options.data)){
+                url = url + a + "="+options.data[a]+"&";
+            }
         }
 
-
+        return url.replace(/\&$/,"");
     }
 
 }
-var  simpleType;
-if(typeof $  === undefined){
-    simpleType = ""
-}
-else{
-    simpleType = $
-}
-export   let apiCall = new simple(simpleType).simpleCall;
+
+export let apiCall = new call();
